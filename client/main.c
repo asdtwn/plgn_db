@@ -5,6 +5,7 @@
 
 int main(int argc, char** argv) {
 /*.....................args: COMMAND(0-4) <TABLE_NAME> <KEY> <VALUE> <TTL>..........*/
+
 	unsigned long long int ttl = 0;
 	if(argc >= 6){
 		ttl = (unsigned long long int)atoi(*(argv+5));
@@ -12,8 +13,7 @@ int main(int argc, char** argv) {
 	if(argc >= 3) {
 	z_data zmq_data;
 	Init_connection(&zmq_data);
-
-	switch ((int)*(*(argv+1))){
+	switch (atoi((char*)(*(argv+1)))){
 		case 0:
 		Create_table(&zmq_data, (*(argv+2)));
 		break;

@@ -37,8 +37,8 @@ void Get_element(z_data* _data, const char* _name, const char* _key); // 4
 
 void Init_connection(z_data* _data);
 void Deinit_connection(z_data* _data);
-static reply send_request(z_data* _data, unsigned char _com_id, const char* _name, const char* _key, const char* _value, const unsigned long long int* _ttl);
-static reply receive_reply(z_data* _data);
+static void send_request(z_data* _data, reply* server_reply, unsigned char _com_id, const char* _name, const char* _key, const char* _value, const unsigned long long int* _ttl);
+static void receive_reply(z_data* _data, reply* _rep);
 
 
 

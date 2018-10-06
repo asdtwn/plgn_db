@@ -19,7 +19,7 @@ void Create_table(z_data* _data, const char* _name) {
 		unsigned char com_id = 0;
 		reply srv_rep;
 	if(_data != NULL && _name != NULL) {
-		srv_rep = send_request(_data, com_id, _name, NULL, NULL, NULL);
+		send_request(_data, &srv_rep, com_id, _name, NULL, NULL, NULL);
 		if(srv_rep.status == OK) {
 			printf("status - OK::Table created\n");
 		} else {
@@ -32,7 +32,7 @@ void Delete_table(z_data* _data, const char* _name) {
 	unsigned char com_id = 1;
 	reply srv_rep;
 	if(_data != NULL && _name != NULL) {
-		srv_rep = send_request(_data, com_id, _name, NULL, NULL, NULL);
+		send_request(_data, &srv_rep, com_id, _name, NULL, NULL, NULL);
 		if(srv_rep.status == OK) {
 			printf("status - OK::Table deleted\n");
 		} else {
@@ -45,7 +45,7 @@ void Update_table(z_data* _data, const char* _name, const char* _key, const char
 	unsigned char com_id = 2;
 	reply srv_rep;
 	if(_data != NULL && _name != NULL && _key != NULL && _value != NULL) {
-		srv_rep = send_request(_data, com_id, _name, _key, _value, &_ttl);
+		send_request(_data, &srv_rep, com_id, _name, _key, _value, &_ttl);
 		if(srv_rep.status == OK) {
 			printf("status - OK::Table updated\n");
 		} else {
@@ -58,7 +58,7 @@ void Delete_element(z_data* _data, const char* _name, const char* _key) {
 	unsigned char com_id = 3;
 	reply srv_rep;
 	if(_data != NULL && _name != NULL && _key != NULL) {
-		srv_rep = send_request(_data, com_id, _name, _key, NULL, NULL);
+		send_request(_data, &srv_rep, com_id, _name, _key, NULL, NULL);
 		if(srv_rep.status == OK) {
 			printf("status - OK::%s\n", srv_rep.buffer);
 		} else {
@@ -71,7 +71,7 @@ void Get_element(z_data* _data, const char* _name, const char* _key) {
 	unsigned char com_id = 4;
 	reply srv_rep;
 	if(_data != NULL && _name != NULL && _key != NULL) {
-		srv_rep = send_request(_data, com_id, _name, _key, NULL, NULL);
+		send_request(_data, &srv_rep, com_id, _name, _key, NULL, NULL);
 		if(srv_rep.status == OK) {
 			printf("status - OK::%s\n", srv_rep.buffer);
 		} else {
@@ -80,9 +80,8 @@ void Get_element(z_data* _data, const char* _name, const char* _key) {
 	}
 }
 
-static reply send_request(z_data* _data, unsigned char _com_id, const char* _name, const char* _key, const char* _value, const unsigned long long int* _ttl) {
+static void send_request(z_data* _data, reply* server_reply, unsigned char _com_id, const char* _name, const char* _key, const char* _value, const unsigned long long int* _ttl) {
 	zmq_msg_t command, name, key, value, ttl;
-	reply server_reply;
 	if(_data != NULL) {
 		switch (_com_id) {
 			/*.........................create table.........................*/
@@ -96,7 +95,7 @@ static reply send_request(z_data* _data, unsigned char _com_id, const char* _nam
 				zmq_msg_send(&name, _data->socket, 0);
 				zmq_msg_close(&command);
 				zmq_msg_close(&name);
-				server_reply = receive_reply(_data);
+				receive_reply(_data, server_reply);
 			}
 			break;
 
@@ -111,7 +110,7 @@ static reply send_request(z_data* _data, unsigned char _com_id, const char* _nam
 				zmq_msg_send(&name, _data->socket, 0);
 				zmq_msg_close(&command);
 				zmq_msg_close(&name);
-				server_reply = receive_reply(_data);
+				receive_reply(_data, server_reply);
 			}
 			break;
 
@@ -142,7 +141,7 @@ static reply send_request(z_data* _data, unsigned char _com_id, const char* _nam
 				zmq_msg_close(&name);
 				zmq_msg_close(&key);
 				zmq_msg_close(&value);
-				server_reply = receive_reply(_data);
+				receive_reply(_data, server_reply);
 			}
 			break;
 
@@ -161,7 +160,7 @@ static reply send_request(z_data* _data, unsigned char _com_id, const char* _nam
 				zmq_msg_close(&command);
 				zmq_msg_close(&name);
 				zmq_msg_close(&key);
-				server_reply = receive_reply(_data);
+				receive_reply(_data, server_reply);
 			}
 			break;
 
@@ -180,37 +179,37 @@ static reply send_request(z_data* _data, unsigned char _com_id, const char* _nam
 				zmq_msg_close(&command);
 				zmq_msg_close(&name);
 				zmq_msg_close(&key);
-				server_reply = receive_reply(_data);
+				receive_reply(_data, server_reply);
 			}
 			break;
 		}
 	}
-	return server_reply;
 }
 
-static reply receive_reply(z_data* _data) {
+static void receive_reply(z_data* _data, reply* _rep) {
 	zmq_msg_t msg_part;
-	reply status_reply;
 	unsigned long long int more;
+	int rep_stat;
 	size_t more_size = sizeof(more);
-	if(_data != NULL) {
+	if(_data != NULL && _rep != NULL) {
 		zmq_msg_init(&msg_part);
 		zmq_msg_recv(&msg_part, _data->socket, 0);
 		zmq_getsockopt(_data->socket, ZMQ_RCVMORE, &more, &more_size);
-		if(*((unsigned char*)zmq_msg_data(&msg_part))  == 0) { // OK
-			status_reply.status = OK;
+		rep_stat = *((unsigned char*)zmq_msg_data(&msg_part));
+		if(rep_stat  == 1) { // OK
+			_rep->status = OK;
+			strcpy(_rep->buffer, "");
 		} else { // ERROR
-			status_reply.status = ERROR;
+			_rep->status = ERROR;
+			strcpy(_rep->buffer, "");
 		}
 		zmq_msg_close(&msg_part);
 		if(more) {
 			zmq_msg_init(&msg_part);
 			zmq_msg_recv(&msg_part, _data->socket, 0);
-			//strcpy(status_reply.buffer, zmq_msg_data(&msg_part));
-			memcpy(status_reply.buffer, zmq_msg_data(&msg_part), zmq_msg_size(&msg_part));
-			status_reply.buffer[zmq_msg_size(&msg_part)] = '\0';
+			memcpy(_rep->buffer, zmq_msg_data(&msg_part), zmq_msg_size(&msg_part));
+			_rep->buffer[zmq_msg_size(&msg_part)] = '\0';
 			zmq_msg_close(&msg_part);
 		}
 	}
-	return status_reply;
 }
