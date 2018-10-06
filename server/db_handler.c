@@ -16,7 +16,7 @@ void Create_table(data_base* _db, const char* _name) {
 	if(_db != NULL && _name != NULL){
 		new_element = init_db_element();
 		if(new_element != NULL) {
-			new_element->table = create_h_table(_name, &compare_ss, &hash_str, &kill_element_ss, &get_element_value_s, &create_element_ss);
+			new_element->table = create_h_table(_name, &compare_ss, &hash_str, &get_element_value_s, &create_element_ss);
 			if(_db->data_head == NULL) {
 				new_element->head = &_db->data_head;
 				_db->data_head = new_element;
@@ -32,18 +32,10 @@ void Create_table(data_base* _db, const char* _name) {
 
 void Delete_table(data_base* _db, const char* _name) {
 	db_element* curr_element = NULL;
-	db_element* tmp_element = NULL;
 	if(_db != NULL && _name != NULL) {
-		tmp_element = _db->data_head;
-		while(tmp_element != NULL) {
-			if(strcmp(_name, tmp_element->table->name) == 0) {
-				curr_element = tmp_element;
-				break;
-			}
-			tmp_element = tmp_element->next;
-		}
+		curr_element = find_db_table(_db, _name);
 		if (curr_element != NULL) {
-			remove_db_element(curr_element);
+			remove_db_table(_db, curr_element);
 		}
 	} 
 }
@@ -89,7 +81,41 @@ static void remove_db_element(db_element* _element) {
 		if(_element->next != NULL) {
 			_element->next->prev = _element->prev;
 		}
-		delete_h_table(_element->table);
+		//delete_h_table(_element->table);
 		deinit_db_element(_element);
+	}
+}
+
+static db_element* find_db_table(data_base* _db, const char* _name) {
+	db_element* curr_element = NULL;
+	db_element* tmp_element = NULL;
+	if(_db != NULL && _name != NULL) {
+		tmp_element = _db->data_head;
+		while(tmp_element != NULL) {
+			if(strcmp(_name, tmp_element->table->name) == 0) { 
+				curr_element = tmp_element;
+				break;
+			}
+			tmp_element = tmp_element->next;
+		}
+	}
+	return curr_element;
+}
+
+static void remove_db_table(data_base* _db, db_element* _element) {
+	ht_element* curr_element = NULL;
+	bt_node* curr_node = NULL;
+	if (_db != NULL && _element != NULL) {
+		curr_element = find_first_element(_element->table);
+		while(curr_element != NULL) {
+			if(curr_element->l_time != 0) {
+				curr_node = find_bt_node(_db->binary_tree, curr_element->l_time);
+				kill_bt_data(find_bt_data_by_node(curr_node, curr_element));
+			}
+			delete_ht_element(_element->table, curr_element);
+			curr_element = find_first_element(_element->table);
+		}
+		delete_h_table(_element->table);
+		remove_db_element(_element);
 	}
 }

@@ -31,5 +31,7 @@ static data_base* init_data_base();
 static db_element* init_db_element();
 static void deinit_db_element();
 static void remove_db_element();
+static db_element* find_db_table(data_base* _db, const char* _name);
+static void remove_db_table(data_base* _db, db_element* _element);
 
 #endif

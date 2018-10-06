@@ -24,9 +24,9 @@ p_data find_element(h_table* _tb, const void* _key) {
 	return ptrs;
 }
 
-h_table* create_h_table(const char* _name, cmp_f* _cmp, hash_f* _hash, mem_f* _mem, get_f* _get, mem_init_f* _init) {
+h_table* create_h_table(const char* _name, cmp_f* _cmp, hash_f* _hash, get_f* _get, mem_init_f* _init) {
 	h_table* new_table = NULL;
-	if (_name != NULL && _cmp != NULL && _hash != NULL && _mem != NULL && _get != NULL && _init != NULL) {
+	if (_name != NULL && _cmp != NULL && _hash != NULL && _get != NULL && _init != NULL) {
 		new_table = (h_table*)malloc(sizeof(h_table));
 		if(new_table != NULL) {
 			new_table->data = NULL;
@@ -38,7 +38,6 @@ h_table* create_h_table(const char* _name, cmp_f* _cmp, hash_f* _hash, mem_f* _m
 					strcpy(new_table->name, _name);
 					new_table->compare = _cmp;
 					new_table->hash = _hash;
-					new_table->kill_element = _mem;
 					new_table->get_element_value = _get;
 					new_table->create_element = _init;
 					for(int i = 0; i < HT_SIZE; i++) {
@@ -51,8 +50,21 @@ h_table* create_h_table(const char* _name, cmp_f* _cmp, hash_f* _hash, mem_f* _m
 	return new_table;
 }
 
+static void deinit_table(h_table* _table) {
+	if(_table != NULL) {
+		free(_table->name);
+		free(_table->data);
+		free(_table);
+	}
+}
+
 void delete_h_table(h_table* _table) {
-	
+	if(_table != NULL) {
+		for(int i = 0; i < HT_SIZE; i++) {
+			remove_element_list(*(_table->data+i));
+		}
+		deinit_table(_table);
+	}
 }
 
 static ht_element* create_element(h_table* _table, const void* _key, const void* _value, unsigned long long int _time) {
@@ -97,6 +109,13 @@ static void remove_element(ht_element* _element) {
 	}
 }
 
+static void remove_element_list(ht_element* _element) {
+	if(_element != NULL) {
+		remove_element_list(_element->next);
+		remove_element(_element);
+	}
+}
+
 static void insert_element(ht_element** _head, ht_element* _element) {
 	if(_head != NULL && _element != NULL) {
 		if(*_head == NULL) { // list is empty
@@ -108,6 +127,33 @@ static void insert_element(ht_element** _head, ht_element* _element) {
 			_element->next->prev = _element; // #atmf#
 			*_head = _element; // #atmf#
 		}
+	}
+}
+
+ht_element* find_first_element(h_table* _tb) {
+	ht_element* curr_element = NULL;
+	if(_tb != NULL) {
+		for(int i = 0; i < HT_SIZE; i++) {
+			if(*(_tb->data+i) != NULL) {
+				curr_element = *(_tb->data+i);
+			}
+		}
+	}
+	return curr_element;
+}
+
+void delete_ht_element(h_table* _tb, ht_element* _element) {
+	if(_tb != NULL && _element != NULL) {
+		if(*(_element->head) == _element) { // head of list
+			*(_element->head) = _element->next;
+		}
+		if(_element->prev != NULL) {
+			_element->prev->next = _element->next;
+		}
+		if(_element->next != NULL) {
+			_element->next->prev = _element->prev;
+		}
+		remove_element(_element);
 	}
 }
 
@@ -138,25 +184,6 @@ int compare_ss(const void* _str1, const void* _str2) {
 	}
 
 	return result;
-}
-
-void kill_element_ss(ht_element* _element) {
-	if(_element != NULL){
-		if(*(_element->head) == _element) { // head of list
-			if(_element->next != NULL) {
-				_element->next->prev = NULL;
-			}
-			*(_element->head) = _element->next;
-		} else {
-			if(_element->prev != NULL) {
-				_element->prev->next = _element->next;
-			}
-			if(_element->next != NULL) {
-				_element->next->prev = _element->prev;
-			}
-		}
-		// free memory
-	}
 }
 
 char* get_element_value_s(ht_element* _element) {

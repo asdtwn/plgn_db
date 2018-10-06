@@ -102,7 +102,7 @@ static void deinit_data(bt_data** _data) {
 	}
 }
 
-static void kill_data(bt_data* _data) {
+void kill_bt_data(bt_data* _data) {
 	if(_data != NULL) {
 		if(*(_data->head) == _data) { // if head of list
 			if(_data->next != NULL) {
@@ -130,7 +130,7 @@ static void insert_data(bt_node* _node, ht_element* _element) {
 			curr = _node->data;
 			while(curr != NULL) {
 				if(_node->tree->compare_elements(curr->data, new_data->data)) {
-					kill_data(new_data); // if same data already exists
+					kill_bt_data(new_data); // if same data already exists
 					return;
 				}
 				if(curr->next == NULL) { // if element not found
@@ -182,7 +182,7 @@ static bt_node* insert_node(b_tree* _tree, unsigned long long int _key) {
 	return curr_node;
 }
 
-static bt_node* find_node(b_tree* _tree, unsigned long long int _key) {
+bt_node* find_bt_node(b_tree* _tree, unsigned long long int _key) {
 	bt_node* curr_node = NULL;
 	cmp_res status = NOT_IDENTIFIED;
 	if(_tree != NULL) {
@@ -223,7 +223,7 @@ static bt_data* find_data_by_ptr(b_tree* _tree, ht_element* _element) {
 	bt_data* curr_data = NULL;
 	bt_data* data = NULL;
 	if(_element != NULL && _tree != NULL) {
-		curr_node = find_node(_tree, _element->l_time);
+		curr_node = find_bt_node(_tree, _element->l_time);
 		if( curr_node != NULL) {
 			curr_data = curr_node->data;
 			while(data == NULL) {
@@ -241,7 +241,7 @@ static bt_data* find_data_by_ptr(b_tree* _tree, ht_element* _element) {
 	return data;
 }
 
-static bt_data* find_data_by_node(bt_node* _node, ht_element* _element) {
+bt_data* find_bt_data_by_node(bt_node* _node, ht_element* _element) {
 	bt_data* curr_data = NULL;
 	bt_data* tmp_data = NULL;
 	if(_node != NULL && _element != NULL) {

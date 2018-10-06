@@ -57,11 +57,11 @@ static void deinit_node(bt_node** _node);
 static void insert_data(bt_node* _node, ht_element* _element);
 static bt_node* insert_node(b_tree* _tree, unsigned long long int _key);
 static bt_data* init_data(bt_data** _head, ht_element* _data);
-static void kill_data(bt_data* _data);
+void kill_bt_data(bt_data* _data);
 static void deinit_data(bt_data** _data);
-static bt_node* find_node(b_tree* _tree, unsigned long long int _key);
+bt_node* find_bt_node(b_tree* _tree, unsigned long long int _key);
 static bt_data* find_data_by_ptr(b_tree* _tree, ht_element* _element);
-static bt_data* find_data_by_node(bt_node* _node, ht_element* _element);
+bt_data* find_bt_data_by_node(bt_node* _node, ht_element* _element);
 
 /*............................some staic functions.............................*/
 static bt_node* find_max_leaf(bt_node* _parent);
