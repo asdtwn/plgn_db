@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+#include <czmq.h>
 
 #include "db_handler.h"
 
@@ -9,6 +10,25 @@ int main() {
 	unsigned long long int tm = 0;
 	unsigned long long int start_tm = 0;
 	req_status ptr_data; // status struct
+	zsock_t* soocket = NULL;
+	soocket = zsock_new(1);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 	/*.1............................create base.............................*/
 	data_base* base = Create_data_base();
