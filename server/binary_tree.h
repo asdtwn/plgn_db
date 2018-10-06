@@ -53,7 +53,7 @@ b_tree* create_tree(cmp_bf* _cmp, cmp_be* _cmp_e);
 //void deinit_tree(b_tree* _tree);
 static bt_node* init_node(b_tree* _tree, unsigned long long int _key, bt_node* _parent, bt_node* _left, bt_node* _right);
 static void kill_node(bt_node* _node);
-void kill_bt_node(bt_node* _node);
+void kill_bt_node(bt_node* _node); // rename to delete_bt_node
 static void deinit_node(bt_node** _node);
 void insert_bt_data(bt_node* _node, ht_element* _element);
 bt_node* insert_bt_node(b_tree* _tree, unsigned long long int _key);
@@ -64,6 +64,9 @@ bt_node* find_bt_node(b_tree* _tree, unsigned long long int _key);
 static bt_data* find_data_by_ptr(b_tree* _tree, ht_element* _element);
 bt_data* find_bt_data_by_node(bt_node* _node, ht_element* _element);
 int is_empty_node(bt_node* _node);
+
+bt_node* find_bt_expired_node(b_tree* _tree, unsigned long long int _key);
+bt_data* get_bt_data_from_node(bt_node* _node);
 
 /*............................some staic functions.............................*/
 static bt_node* find_max_leaf(bt_node* _parent);

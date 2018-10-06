@@ -3,9 +3,9 @@
 
 #include <math.h>
 #include <string.h>
+#include <stdio.h>
 
 #define HT_SIZE 99
-#define MAX_STRING_LENGTH 20
 
 struct hash_table;
 struct t_element;

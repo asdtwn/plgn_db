@@ -195,10 +195,9 @@ unsigned long long int hash_str(const void* _key) {
 
 		str = (const char*)_key;
 
-		for(i = 0; ((*str) != '\0') && (i < MAX_STRING_LENGTH);i++) {
+		for(i = 0; i < strlen(str);i++) {
 			result = result + (int)pow((int)(*(str+i)),i);
 		}
-
 	}
 
 	return result;

@@ -105,11 +105,7 @@ static void deinit_data(bt_data** _data) {
 void kill_bt_data(bt_data* _data) {
 	if(_data != NULL) {
 		if(*(_data->head) == _data) { // if head of list
-			if(_data->next != NULL) {
-				*(_data->head) = _data->next;
-			} else {
-				*(_data->head) = NULL;
-			}
+			*(_data->head) = _data->next;
 		}
 		if(_data->prev != NULL) {
 			_data->prev->next = _data->next;
@@ -165,35 +161,38 @@ void insert_bt_data(bt_node* _node, ht_element* _element) {
 bt_node* insert_bt_node(b_tree* _tree, unsigned long long int _key) {
 	bt_node* curr_node = NULL;
 	int loop_flag = 1;
-	if (_tree->root != NULL) {
-		curr_node = _tree->root;
-		while(loop_flag) {
-			switch(_tree->compare(curr_node->key, _key)) {
-				case LEFT_WAY:
-				if(curr_node->left != NULL) {
-					curr_node = curr_node->left;
-				} else {
-					curr_node->left = init_node(_tree, _key, curr_node, NULL, NULL); // insert to the left
-					curr_node = curr_node->left;
-					loop_flag = 0;
+	if(_tree != NULL) {
+		if (_tree->root != NULL) {
+			curr_node = _tree->root;
+			while(loop_flag) {
+				switch(_tree->compare(curr_node->key, _key)) {
+					case LEFT_WAY:
+					if(curr_node->left != NULL) {
+						curr_node = curr_node->left;
+					} else {
+						curr_node->left = init_node(_tree, _key, curr_node, NULL, NULL); // insert to the left
+						curr_node = curr_node->left;
+						loop_flag = 0;
+					}
+					break;
+					case RIGHT_WAY:
+					if(curr_node->right != NULL) {
+						curr_node = curr_node->right;
+					} else {
+						curr_node->right = init_node(_tree, _key, curr_node, NULL, NULL); // insert to the right
+						curr_node = curr_node->right;
+						loop_flag = 0;
+					}
+					break;
+					case EQUAL_VAL:
+						loop_flag = 0;
+					break;
 				}
-				break;
-				case RIGHT_WAY:
-				if(curr_node->right != NULL) {
-					curr_node = curr_node->right;
-				} else {
-					curr_node->right = init_node(_tree, _key, curr_node, NULL, NULL); // insert to the right
-					curr_node = curr_node->right;
-					loop_flag = 0;
-				}
-				break;
-				case EQUAL_VAL:
-					loop_flag = 0;
-				break;
 			}
+		} else {
+			curr_node = init_node(_tree, _key, NULL, NULL, NULL);
+			_tree->root = curr_node;
 		}
-	} else {
-		curr_node = init_node(_tree, _key, NULL, NULL, NULL);
 	}
 	return curr_node;
 }
@@ -268,6 +267,42 @@ bt_data* find_bt_data_by_node(bt_node* _node, ht_element* _element) {
 				break;
 			}
 			tmp_data = tmp_data->next;
+		}
+	}
+	return curr_data;
+}
+
+bt_node* find_bt_expired_node(b_tree* _tree, unsigned long long int _key) {
+	bt_node* expired_node = NULL;
+	bt_node* tmp_node = NULL;
+	if(_tree != NULL) {
+		tmp_node = _tree->root;
+		while(tmp_node != NULL) {
+			switch (_tree->compare(tmp_node->key, _key)) {
+				case LEFT_WAY:
+				tmp_node = tmp_node->left;
+				break;
+
+				case RIGHT_WAY:
+				expired_node = tmp_node;
+				tmp_node = NULL;
+				break;
+
+				case EQUAL_VAL:
+				expired_node = tmp_node;
+				tmp_node = NULL;
+				break;
+			}
+		}
+	}
+	return expired_node;
+}
+
+bt_data* get_bt_data_from_node(bt_node* _node) {
+	bt_data* curr_data = NULL;
+	if(_node != NULL) {
+		if(_node->data != NULL) {
+			curr_data = _node->data;
 		}
 	}
 	return curr_data;

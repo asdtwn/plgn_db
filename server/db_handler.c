@@ -63,9 +63,9 @@ req_status Update_table(data_base* _db, const char* _name, const void* _key, con
 			search_result = find_ht_element(data->table, _key);
 			if(search_result.current != NULL) { // same key-element exists
 				result.status = TABLE_ELEMENT_FOUND;
-				update_db_element_data(_db, search_result.current, _key, _value, _ttl);
+				update_db_element_data(_db, search_result.current, _key, _value, translate_time_to_key(_ttl));
 			} else {
-				insert_db_element_data(_db, data, _key, _value, _ttl);
+				insert_db_element_data(_db, data, _key, _value, translate_time_to_key(_ttl));
 			}
 			result.status = TABLE_UPDATED;
 		}
@@ -113,6 +113,13 @@ req_status Get_value(data_base* _db, const char* _name, const void* _key) {
 		}
 	}
 	return result;
+}
+
+/*..................................update base functions...............................................*/
+void Update_base(data_base* _db) {
+	if(_db != NULL) {
+		update_binary_tree(_db->binary_tree);
+	}
 }
 
 /*................................some static functions.................................................*/
@@ -237,4 +244,39 @@ static void update_db_element_data(data_base* _db, ht_element* _old_element, con
 			insert_bt_data(insert_bt_node(_db->binary_tree, _ttl), new_element); // binary-tree element reg
 		}
 	}
+}
+
+static void update_binary_tree(b_tree* _tree) {
+	bt_node* node = NULL;
+	if(_tree != NULL) {
+		node = find_bt_expired_node(_tree, get_current_time_value());
+		delete_all_data_from_bt_node(node);
+		kill_bt_node(node);
+	}
+}
+
+static void delete_all_data_from_bt_node(bt_node* _node) {
+	bt_data* element = NULL;
+	if(_node != NULL) {
+		element = get_bt_data_from_node(_node);
+		while(element != NULL) {
+			delete_ht_element(element->data->table, element->data);
+			kill_bt_data(element);
+			element = get_bt_data_from_node(_node);
+		}
+	}
+}
+
+static unsigned long long int get_current_time_value() {
+ unsigned long long int time_value = 0;
+ time_value = time(NULL);
+ return time_value;
+}
+
+static unsigned long long int translate_time_to_key(unsigned long long int _time) {
+	unsigned long long int key = 0;
+	if(_time != 0) {
+		key = (unsigned long long int)time(NULL) + _time;
+	}
+	return key;
 }
