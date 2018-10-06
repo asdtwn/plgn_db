@@ -3,7 +3,7 @@
 #include "hash_table.h"
 
 
-p_data find_element(h_table* _tb, const void* _key) {
+p_data find_ht_element(h_table* _tb, const void* _key) {
 	p_data ptrs;
 	ht_element* curr = NULL;
 	int pos;
@@ -67,14 +67,13 @@ void delete_h_table(h_table* _table) {
 	}
 }
 
-static ht_element* create_element(h_table* _table, const void* _key, const void* _value, unsigned long long int _time) {
+ht_element* create_ht_element(h_table* _table, const void* _key, const void* _value, unsigned long long int _ttl) {
 	ht_element* new_element = NULL;
 	if (_table != NULL && _key != NULL && _value != NULL) {
 		new_element = init_element();
 		if(new_element != NULL) {
 			_table->create_element(new_element, _key, _value);
-			new_element->l_time = _time;
-			new_element->table = _table;
+			new_element->l_time = _ttl;
 		}
 	}
 	return new_element;
@@ -116,16 +115,21 @@ static void remove_element_list(ht_element* _element) {
 	}
 }
 
-static void insert_element(ht_element** _head, ht_element* _element) {
-	if(_head != NULL && _element != NULL) {
-		if(*_head == NULL) { // list is empty
-			_element->head = _head;
-			*_head = _element; // #atmf#
+void insert_ht_element(h_table* _table, ht_element* _element) {
+	ht_element** head = NULL;
+	int pos = 0;
+	if(_table != NULL && _element != NULL) {
+		_element->table = _table;
+		pos = _table->hash(_element->key) % HT_SIZE;
+		head = (_table->data+pos);
+		if(*head == NULL) { // list is empty
+			_element->head = head;
+			*head = _element; // #atmf#
 		} else {
-			_element->head = _head;
-			_element->next = *_head;
+			_element->head = head;
+			_element->next = *head;
 			_element->next->prev = _element; // #atmf#
-			*_head = _element; // #atmf#
+			*head = _element; // #atmf#
 		}
 	}
 }
@@ -153,6 +157,30 @@ void delete_ht_element(h_table* _tb, ht_element* _element) {
 		if(_element->next != NULL) {
 			_element->next->prev = _element->prev;
 		}
+		remove_element(_element);
+	}
+}
+
+void swap_ht_element(ht_element* _old, ht_element* _new) {
+	if(_old != NULL && _new != NULL) {
+		_new->table = _old->table;
+		_new->head = _old->head;
+		_new->prev = _old->prev;
+		_new->next = _old->next;
+		if(*(_old->head) == _old) { // head of the list
+			*(_old->head) = _new;
+		}
+		if(_new->prev != NULL) {
+			_new->prev->next = _new;
+		}
+		if(_new->next != NULL) {
+			_new->next->prev = _new;
+		}
+	}
+}
+
+void kill_ht_element(ht_element* _element) {
+	if(_element != NULL) {
 		remove_element(_element);
 	}
 }

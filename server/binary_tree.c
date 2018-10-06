@@ -121,32 +121,48 @@ void kill_bt_data(bt_data* _data) {
 	}
 }
 
-static void insert_data(bt_node* _node, ht_element* _element) {
+void kill_bt_node(bt_node* _node) {
+	if(_node != NULL) {
+		kill_node(_node);
+	}
+}
+
+int is_empty_node(bt_node* _node) {
+	int res = 0;
+	if(_node != NULL) {
+		(_node->data == NULL) ? (res = 1) : (res = 0);
+	}
+	return res;
+}
+
+void insert_bt_data(bt_node* _node, ht_element* _element) {
 	bt_data* new_data = NULL;
 	bt_data* curr = NULL;
-	new_data = init_data(&(_node->data), _element);
-	if(new_data != NULL) {
-		if (*(new_data->head) != NULL) {
-			curr = _node->data;
-			while(curr != NULL) {
-				if(_node->tree->compare_elements(curr->data, new_data->data)) {
-					kill_bt_data(new_data); // if same data already exists
-					return;
+	if(_node != NULL && _element != NULL) {
+		new_data = init_data(&(_node->data), _element);
+		if(new_data != NULL) {
+			if (*(new_data->head) != NULL) {
+				curr = _node->data;
+				while(curr != NULL) {
+					if(_node->tree->compare_elements(curr->data, new_data->data)) {
+						kill_bt_data(new_data); // if same data already exists
+						return;
+					}
+					if(curr->next == NULL) { // if element not found
+						new_data->prev = curr;
+						curr->next = new_data; // #atmf#
+						return;
+					}
+					curr = curr->next;
 				}
-				if(curr->next == NULL) { // if element not found
-					new_data->prev = curr;
-					curr->next = new_data; // #atmf#
-					return;
-				}
-				curr = curr->next;
+			} else {
+				_node->data = new_data; // #atmf#
 			}
-		} else {
-			_node->data = new_data; // #atmf#
 		}
 	}
 }
 
-static bt_node* insert_node(b_tree* _tree, unsigned long long int _key) {
+bt_node* insert_bt_node(b_tree* _tree, unsigned long long int _key) {
 	bt_node* curr_node = NULL;
 	int loop_flag = 1;
 	if (_tree->root != NULL) {

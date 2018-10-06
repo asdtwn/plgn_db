@@ -11,8 +11,10 @@ data_base* Create_data_base() {
 }
 
 
-void Create_table(data_base* _db, const char* _name) {
+req_status Create_table(data_base* _db, const char* _name) {
+	req_status result;
 	db_element* new_element = NULL;
+	result.status = UNDEFINED;
 	if(_db != NULL && _name != NULL){
 		new_element = init_db_element();
 		if(new_element != NULL) {
@@ -26,21 +28,92 @@ void Create_table(data_base* _db, const char* _name) {
 				new_element->next->prev = new_element;
 				_db->data_head = new_element;
 			}
+			result.status = TABLE_CREATED;
 		}
 	}
+	return result;
 }
 
-void Delete_table(data_base* _db, const char* _name) {
+req_status Delete_table(data_base* _db, const char* _name) {
+	req_status result;
 	db_element* curr_element = NULL;
+	result.status = UNDEFINED;
 	if(_db != NULL && _name != NULL) {
+		result.status = TABLE_NOT_EXISTS;
 		curr_element = find_db_table(_db, _name);
 		if (curr_element != NULL) {
 			remove_db_table(_db, curr_element);
+			result.status = TABLE_REMOVED;
 		}
 	} 
+	return result;
 }
 
+req_status Update_table(data_base* _db, const char* _name, const void* _key, const void* _value, unsigned long long int _ttl) {
+	req_status result;
+	ht_element* curr_element = NULL;
+	db_element* data = NULL;
+	p_data search_result;
+	result.status = UNDEFINED;
+	if(_db != NULL && _name != NULL && _key != NULL && _value != NULL) {
+		result.status = TABLE_NOT_EXISTS;
+		data = find_db_table(_db, _name);
+		if(data != NULL) {
+			result.status = TABLE_ELEMENT_NOT_EXISTS;
+			search_result = find_ht_element(data->table, _key);
+			if(search_result.current != NULL) { // same key-element exists
+				result.status = TABLE_ELEMENT_FOUND;
+				update_db_element_data(_db, search_result.current, _key, _value, _ttl);
+			} else {
+				insert_db_element_data(_db, data, _key, _value, _ttl);
+			}
+			result.status = TABLE_UPDATED;
+		}
+	}
+	return result;
+}
 
+req_status Delete_element(data_base* _db, const char* _name, const void* _key) {
+	req_status result;
+	db_element* curr_data = NULL;
+	p_data curr_ptrs;
+	result.status = UNDEFINED;
+	if(_db != NULL && _name != NULL && _key != NULL) {
+		result.status = TABLE_NOT_EXISTS;
+		curr_data = find_db_table(_db, _name);
+		if(curr_data != NULL) {
+			result.status = TABLE_ELEMENT_NOT_EXISTS;
+			curr_ptrs = find_ht_element(curr_data->table, _key);
+			if(curr_ptrs.current != NULL) {
+				result.status = TABLE_ELEMENT_FOUND;
+				strcpy(result.buffer, curr_ptrs.current->table->get_element_value(curr_ptrs.current));
+				delete_db_element_data(_db, curr_ptrs.current);
+				result.status = TABLE_ELEMENT_REMOVED;
+			}
+		}
+	}
+	return result;
+}
+
+req_status Get_value(data_base* _db, const char* _name, const void* _key) {
+	req_status result;
+	db_element* curr_data = NULL;
+	p_data curr_ptrs;
+	result.status = UNDEFINED;
+	if(_db != NULL && _name != NULL && _key != NULL) {
+		result.status = TABLE_NOT_EXISTS;
+		curr_data = find_db_table(_db, _name);
+		if(curr_data != NULL){
+			result.status = TABLE_ELEMENT_NOT_EXISTS;
+			curr_ptrs = find_ht_element(curr_data->table, _key);
+			if(curr_ptrs.current != NULL) {
+				result.status = TABLE_ELEMENT_FOUND;
+				strcpy(result.buffer, curr_ptrs.current->table->get_element_value(curr_ptrs.current));
+			}
+		}
+	}
+	return result;
+}
 
 /*................................some static functions.................................................*/
 static data_base* init_data_base() {
@@ -111,11 +184,57 @@ static void remove_db_table(data_base* _db, db_element* _element) {
 			if(curr_element->l_time != 0) {
 				curr_node = find_bt_node(_db->binary_tree, curr_element->l_time);
 				kill_bt_data(find_bt_data_by_node(curr_node, curr_element));
+				if(is_empty_node(curr_node)){
+					kill_bt_node(curr_node);
+				}
 			}
 			delete_ht_element(_element->table, curr_element);
 			curr_element = find_first_element(_element->table);
 		}
 		delete_h_table(_element->table);
 		remove_db_element(_element);
+	}
+}
+
+static void insert_db_element_data(data_base* _db, db_element* _dest, const void* _key, const void* _value, unsigned long long int _ttl) {
+	ht_element* new_element = NULL;
+	if (_db != NULL && _dest != NULL && _key != NULL && _value != NULL) {
+		new_element = create_ht_element(_dest->table, _key, _value, _ttl);
+		insert_ht_element(_dest->table, new_element); // hash-table element reg
+		if(_ttl != 0) {
+			insert_bt_data(insert_bt_node(_db->binary_tree, _ttl), new_element); // binary-tree element reg
+		}
+	}
+}
+
+static void delete_db_element_data(data_base* _db, ht_element* _element) {
+	bt_node* node = NULL;
+	if(_db != NULL && _element != NULL) {
+		if(_element->l_time != 0) {
+			node = find_bt_node(_db->binary_tree, _element->l_time);
+			kill_bt_data(find_bt_data_by_node(node, _element));
+			if(is_empty_node(node)){
+				kill_bt_node(node);
+			}
+		}
+		delete_ht_element(_element->table, _element);
+	}
+}
+
+static void update_db_element_data(data_base* _db, ht_element* _old_element, const void* _key, const void* _value, unsigned long long int _ttl) {
+	ht_element* new_element = NULL;
+	bt_node* node = NULL;
+	if(_db != NULL && _old_element != NULL && _key != NULL && _value != NULL) {
+		new_element = create_ht_element(_old_element->table, _key, _value, _ttl);
+		node = find_bt_node(_db->binary_tree, _ttl);
+		kill_bt_data(find_bt_data_by_node(node, _old_element));
+		if(is_empty_node(node)){
+			kill_bt_node(node);
+		}
+		swap_ht_element(_old_element, new_element);
+		kill_ht_element(_old_element);
+		if(_ttl != 0) {
+			insert_bt_data(insert_bt_node(_db->binary_tree, _ttl), new_element); // binary-tree element reg
+		}
 	}
 }
