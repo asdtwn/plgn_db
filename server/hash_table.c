@@ -17,7 +17,7 @@ p_data find_element(h_table* _tb, const void* _key) {
 		} else {
 			curr = *(_tb->data+pos);
 			while(curr->next != NULL) {
-				if(_tb->compare(_key, current->key)) {
+				if(_tb->compare(_key, curr->key)) {
 					ptrs.current = curr;
 					break;
 				}
@@ -43,13 +43,13 @@ h_table* create_table(const char* _name, cmp_f* _cmp, hash_f* _hash) {
 					new_table->compare = _cmp;
 					new_table->hash = _hash;
 					for(int i = 0; i < HT_SIZE; i++) {
-						*(new_talbe->data+i) = NULL;
+						*(new_table->data+i) = NULL;
 					}
 				}
 			}
 		}
 	}
-	return h_table;
+	return new_table;
 }
 
 static ht_element* init_element() {

@@ -1,35 +1,146 @@
 #include "binary_tree.h"
 
-b_tree* create_tree(cmp_bf* _cmp) {
+b_tree* create_tree(cmp_bf* _cmp, cmp_be* _cmp_e) {
 	b_tree* new_tree = NULL;
 	if (_cmp != NULL) {
 		new_tree = (b_tree*)malloc(sizeof(b_tree));
 		if (new_tree != NULL) {
 			new_tree->compare = _cmp;
+			new_tree->compare_elements = _cmp_e;
 			new_tree->root = NULL;
 		}
 	}
 	return new_tree;
 }
 
-bt_node* create_node(unsigned long long int _key, bt_node* _parent, bt_node* _left, bt_node* _right) {
+static bt_node* init_node(b_tree* _tree, unsigned long long int _key, bt_node* _parent, bt_node* _left, bt_node* _right) {
 	bt_node* new_node = NULL;
-	new_node = (bt_node*)malloc(sizeof(bt_node));
-	if (new_node != NULL) {
-		new_node->key = _key;
-		new_node->data = NULL;
-		new_node->parent = NULL;
-		new_node->left = NULL;
-		new_node->right = NULL;
-		new_node->parent = _parent;
-		new_node->left = _left;
-		new_node->right = _right;
+	if (_tree != NULL) {
+		new_node = (bt_node*)malloc(sizeof(bt_node));
+		if (new_node != NULL) {
+			new_node->tree = _tree;
+			new_node->key = _key;
+			new_node->data = NULL;
+			new_node->parent = NULL;
+			new_node->left = NULL;
+			new_node->right = NULL;
+			new_node->parent = _parent;
+			new_node->left = _left;
+			new_node->right = _right;
+		}
 	}
 	return new_node;
 }
 
-void insert_data(b_tree* _tree, unsigned long long int _key, bt_element* _element) {
+static void deinit_node(bt_node** _node) {
+	if (_node != NULL) {
+		free(*_node);
+		*_node = NULL;
+	}
+}
 
+static void kill_node(bt_node* _node) {
+	if(_node != NULL){
+		switch (check_node_status(_node)) {
+			case LEFT_EXISTS:
+			if(is_root_node(_node)){
+				_node->tree->root = _node->left;
+				_node->left->parent = NULL;
+			} else {
+				*(node_relation(_node)) = _node->left;
+				_node->left->parent = _node->parent;
+			}
+			break;
+			case RIGHT_EXISTS:
+			if(is_root_node(_node)){
+				_node->tree->root = _node->right;
+				_node->right->parent = NULL;
+			} else {
+				*(node_relation(_node)) = _node->right;
+				_node->right->parent = _node->parent;
+			}
+			break;
+			case BOTH_EXISTS:
+			if(is_root_node(_node)){
+				_node->tree->root = _node->right;
+				_node->right->parent = NULL;
+				rebuild_tree(_node);
+			} else {
+				rebuild_tree(_node);
+			}
+			break;
+			case NONE_EXISTS:
+			if(is_root_node(_node)){
+				_node->tree->root = NULL;
+			} else {
+				*(node_relation(_node)) = NULL;
+			}
+			break;
+		}
+		// delete_all_elements
+		deinit_node(&_node);
+	}
+}
+
+static bt_data* init_data(bt_data** _head, ht_element* _element) {
+	bt_data* new_data = NULL;
+	if (_head != NULL && _element != NULL) {
+		new_data = (bt_data*)malloc(sizeof(bt_data));
+		if (new_data != NULL) {
+			new_data->data = _element;
+			new_data->head = _head;
+			new_data->next = NULL;
+			new_data->prev = NULL;
+		}
+	}
+	return new_data;
+}
+
+static void deinit_data(bt_data** _data) {
+	if(_data != NULL) {
+		free(*_data);
+		*_data = NULL;	
+	}
+}
+
+static void kill_data(bt_data* _data) {
+	if(_data != NULL) {
+		if(*(_data->head) == _data) { // if head of list
+			*(_data->head) = _data->next;
+		}
+		if(_data->prev != NULL) {
+			_data->prev->next = _data->next;
+		}
+		if (_data->next != NULL) {
+			_data->next->prev = _data->prev;
+		}
+		deinit_data(&_data);
+	}
+}
+
+static void insert_data(bt_node* _node, ht_element* _element) {
+	bt_data* new_data = NULL;
+	bt_data* curr = NULL;
+	new_data = init_data(&(_node->data), _element);
+	if(new_data != NULL) {
+		if (*(new_data->head) != NULL) {
+			curr = _node->data;
+			while(curr != NULL) {
+				if(_node->tree->compare_elements(curr->data, new_data->data)) {
+					kill_data(new_data); // if same data already exists
+					return;
+				}
+				if(curr->next == NULL) { // if element not found
+					new_data->prev = curr;
+					curr->next = new_data; // #atmf#
+					return;
+				}
+				curr = curr->next;
+			}
+		} else {
+			_node->data = new_data; // #atmf#
+		}
+	}
 }
 
 static bt_node* insert_node(b_tree* _tree, unsigned long long int _key) {
@@ -43,7 +154,7 @@ static bt_node* insert_node(b_tree* _tree, unsigned long long int _key) {
 				if(curr_node->left != NULL) {
 					curr_node = curr_node->left;
 				} else {
-					curr_node->left = create_node(_key, curr_node, NULL, NULL); // insert to the left
+					curr_node->left = init_node(_tree, _key, curr_node, NULL, NULL); // insert to the left
 					curr_node = curr_node->left;
 					loop_flag = 0;
 				}
@@ -52,7 +163,7 @@ static bt_node* insert_node(b_tree* _tree, unsigned long long int _key) {
 				if(curr_node->right != NULL) {
 					curr_node = curr_node->right;
 				} else {
-					curr_node->right = create_node(_key, curr_node, NULL, NULL); // insert to the right
+					curr_node->right = init_node(_tree, _key, curr_node, NULL, NULL); // insert to the right
 					curr_node = curr_node->right;
 					loop_flag = 0;
 				}
@@ -63,7 +174,92 @@ static bt_node* insert_node(b_tree* _tree, unsigned long long int _key) {
 			}
 		}
 	} else {
-		curr_node = create_node(_key, NULL, NULL, NULL);
+		curr_node = init_node(_tree, _key, NULL, NULL, NULL);
 	}
 	return curr_node;
+}
+
+/*...........................some static functions....................*/
+static bt_node* find_max_leaf(bt_node* _parent) {
+	bt_node* leaf = NULL;
+	if(_parent != NULL) {
+		leaf =_parent;
+		while(leaf->right != NULL) {
+			leaf = leaf->right;
+		}
+	}
+	return leaf;
+}
+
+static bt_node* find_min_leaf(bt_node* _parent) {
+	bt_node* leaf = NULL;
+	if(_parent != NULL) {
+		leaf = _parent;
+		while(leaf->left != NULL) {
+			leaf = leaf->left;
+		}
+	}
+	return leaf;
+}
+
+static node_stat check_node_status(bt_node* _node) {
+	if (_node->left != NULL && _node->right != NULL){
+		return BOTH_EXISTS;
+	}
+	if (_node->left != NULL && _node->right == NULL) {
+		return LEFT_EXISTS;
+	}
+	if (_node->left == NULL && _node->right != NULL) {
+		return RIGHT_EXISTS;
+	}
+	return NONE_EXISTS;
+}
+
+static int is_root_node(bt_node* _node) {
+	return (_node->tree->root == _node) ? 1 : 0 ;
+}
+
+static bt_node** node_relation(bt_node* _node) {
+	return (_node == _node->parent->left) ?	&(_node->parent->left) : &(_node->parent->right);
+}
+
+static void rebuild_tree(bt_node* _node) {
+	bt_node* _tmp;
+	if (_node != NULL) {
+		/*....1.right node move here......................................*/
+		_node->right->parent = _node->parent;
+		if(_node->parent != NULL) {
+			*(node_relation(_node)) = _node->right;
+		}
+		/*....2.move right_node left_branch to left_node right_branch.....*/
+		_tmp = find_max_leaf(_node->left);
+		if(_tmp != NULL) {
+			_tmp->right = _node->right->left;
+			_tmp->right->parent = _tmp;
+			_node->right->left = NULL;
+		}
+		/*....3.assign left and right nodes...............................*/
+		_node->right->left = _node->left;
+		_node->left->parent = _node->right;
+	}
+}
+
+/*.........................compare functioins..........................*/
+cmp_res compare_uu(unsigned long long int _num1, unsigned long long int _num2) {
+	if(_num2 < _num1) {
+		return LEFT_WAY;
+	}
+	if (_num2 > _num1) {
+		return RIGHT_WAY;
+	}
+	if (_num2 == _num1) {
+		return EQUAL_VAL;
+	}
+}
+
+int compare_elements_hess(const void* _elem1, const void* _elem2) {
+
+	if (_elem1 != NULL && _elem2 != NULL) {
+		return (strcmp(((ht_element*)_elem1)->key, ((ht_element*)_elem2)->key) == 0);
+	}
 }
