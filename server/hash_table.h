@@ -7,11 +7,17 @@
 #define HT_SIZE 99
 #define MAX_STRING_LENGTH 20
 
+struct hash_table;
+struct t_element;
+
 typedef int (cmp_f)(const void*, const void*);
 typedef unsigned long long int (hash_f)(const void*);
+typedef void (mem_f)(struct t_element*);
+typedef char* (get_f)(struct t_element*);
+typedef void (mem_init_f)(struct t_element*,const void*,const void*);
 
 typedef struct t_element{
-
+	struct hash_table* table;
 	void* key;
 	void* value;
 	unsigned long long int l_time;
@@ -29,6 +35,9 @@ typedef struct hash_table{
 
 	cmp_f* compare;
 	hash_f* hash;
+	mem_init_f* create_element;
+	mem_f* kill_element;
+	get_f* get_element_value;
 } h_table;
 
 typedef struct {
@@ -37,16 +46,19 @@ typedef struct {
 } p_data;
 
 
-h_table* create_table(const char* _name, cmp_f* _cmp, hash_f* _hash);
+h_table* create_table(const char* _name, cmp_f* _cmp, hash_f* _hash, mem_f* _mem, get_f* _get);
 
-ht_element* create_element(h_table* _table, const void* _key, const void* value, unsigned long long int _time);
-void remove_element(ht_element* _element);
+static ht_element* create_element(h_table* _table, const void* _key, const void* value, unsigned long long int _time);
+static void remove_element(ht_element* _element);
 static ht_element* init_element();
 static void deinit_element(ht_element* _element);
 p_data find_element(h_table* _tb, const void* _key);
 
+/*..................................hash/compare functions......................................*/
 int compare_ss(const void* _str1, const void* _str2);
 unsigned long long int hash_str(const void* _key);
-
+void kill_element_ss(ht_element* _element);
+char* get_element_value_s(ht_element* _element);
+void create_element_ss(ht_element* _element, const void* _key, const void* _value);
 
 #endif

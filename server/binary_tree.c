@@ -77,7 +77,6 @@ static void kill_node(bt_node* _node) {
 			}
 			break;
 		}
-		// delete_all_elements
 		deinit_node(&_node);
 	}
 }
@@ -106,7 +105,11 @@ static void deinit_data(bt_data** _data) {
 static void kill_data(bt_data* _data) {
 	if(_data != NULL) {
 		if(*(_data->head) == _data) { // if head of list
-			*(_data->head) = _data->next;
+			if(_data->next != NULL) {
+				*(_data->head) = _data->next;
+			} else {
+				*(_data->head) = NULL;
+			}
 		}
 		if(_data->prev != NULL) {
 			_data->prev->next = _data->next;
@@ -179,6 +182,65 @@ static bt_node* insert_node(b_tree* _tree, unsigned long long int _key) {
 	return curr_node;
 }
 
+static bt_node* find_node(b_tree* _tree, unsigned long long int _key) {
+	bt_node* curr_node = NULL;
+	cmp_res status = NOT_IDENTIFIED;
+	if(_tree != NULL) {
+		if (_tree->root != NULL) {
+			curr_node = _tree->root;
+			while(status != EQUAL_VAL) {
+				status = _tree->compare(curr_node->key, _key);
+				switch (status) {
+
+					case LEFT_WAY:
+					if(curr_node->left != NULL) {
+						curr_node = curr_node->left;
+					} else {
+						return NULL;
+					}
+					break;
+
+					case RIGHT_WAY:
+					if(curr_node->right != NULL){
+						curr_node = curr_node->right;
+					} else {
+						return NULL;
+					}
+					break;
+
+					case EQUAL_VAL:
+					return curr_node;
+					break;
+				}
+			}
+		}
+	}
+	return curr_node;
+}
+
+static bt_data* find_data(b_tree* _tree, ht_element* _element) {
+	bt_node* curr_node = NULL;
+	bt_data* curr_data = NULL;
+	bt_data* data = NULL;
+	if(_element != NULL && _tree != NULL) {
+		curr_node = find_node(_tree, _element->l_time);
+		if( curr_node != NULL) {
+			curr_data = curr_node->data;
+			while(data == NULL) {
+				if(curr_data == NULL) {
+					break;
+				}
+				if(curr_data->data == _element) {
+					data = curr_data;
+					break;
+				}
+				curr_data = curr_data->next;
+			}
+		}
+	}
+	return data;
+}
+
 /*...........................some static functions....................*/
 static bt_node* find_max_leaf(bt_node* _parent) {
 	bt_node* leaf = NULL;
@@ -216,10 +278,16 @@ static node_stat check_node_status(bt_node* _node) {
 }
 
 static int is_root_node(bt_node* _node) {
+	if(_node == NULL) {
+		return 0;
+	}
 	return (_node->tree->root == _node) ? 1 : 0 ;
 }
 
 static bt_node** node_relation(bt_node* _node) {
+	if (_node == NULL) {
+		return NULL;
+	}
 	return (_node == _node->parent->left) ?	&(_node->parent->left) : &(_node->parent->right);
 }
 
