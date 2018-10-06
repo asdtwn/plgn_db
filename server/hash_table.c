@@ -12,25 +12,21 @@ p_data find_element(h_table* _tb, const void* _key) {
 	if (_key != NULL && _tb != NULL) {
 		pos = _tb->hash(_key) % HT_SIZE;
 		ptrs.head = (_tb->data + pos);
-		if (*(_tb->data + pos) == NULL) {
-			ptrs.current = NULL;
-		} else {
-			curr = *(_tb->data+pos);
-			while(curr->next != NULL) {
-				if(_tb->compare(_key, curr->key)) {
-					ptrs.current = curr;
-					break;
-				}
-				curr = curr->next;
+		curr = *(_tb->data+pos);
+		while(curr != NULL) {
+			if(_tb->compare(_key, curr->key)) {
+				ptrs.current = curr;
+				break;
 			}
+			curr = curr->next;
 		}
 	}
 	return ptrs;
 }
 
-h_table* create_table(const char* _name, cmp_f* _cmp, hash_f* _hash, mem_f* _mem, get_f* _get) {
+h_table* create_h_table(const char* _name, cmp_f* _cmp, hash_f* _hash, mem_f* _mem, get_f* _get, mem_init_f* _init) {
 	h_table* new_table = NULL;
-	if (_name != NULL && _cmp != NULL && _hash != NULL && _mem != NULL && _get != NULL) {
+	if (_name != NULL && _cmp != NULL && _hash != NULL && _mem != NULL && _get != NULL && _init != NULL) {
 		new_table = (h_table*)malloc(sizeof(h_table));
 		if(new_table != NULL) {
 			new_table->data = NULL;
@@ -44,6 +40,7 @@ h_table* create_table(const char* _name, cmp_f* _cmp, hash_f* _hash, mem_f* _mem
 					new_table->hash = _hash;
 					new_table->kill_element = _mem;
 					new_table->get_element_value = _get;
+					new_table->create_element = _init;
 					for(int i = 0; i < HT_SIZE; i++) {
 						*(new_table->data+i) = NULL;
 					}
@@ -52,6 +49,10 @@ h_table* create_table(const char* _name, cmp_f* _cmp, hash_f* _hash, mem_f* _mem
 		}
 	}
 	return new_table;
+}
+
+void delete_h_table(h_table* _table) {
+	
 }
 
 static ht_element* create_element(h_table* _table, const void* _key, const void* _value, unsigned long long int _time) {
@@ -93,6 +94,20 @@ static void remove_element(ht_element* _element) {
 		free(_element->value);
 		free(_element->key);
 		deinit_element(_element);
+	}
+}
+
+static void insert_element(ht_element** _head, ht_element* _element) {
+	if(_head != NULL && _element != NULL) {
+		if(*_head == NULL) { // list is empty
+			_element->head = _head;
+			*_head = _element; // #atmf#
+		} else {
+			_element->head = _head;
+			_element->next = *_head;
+			_element->next->prev = _element; // #atmf#
+			*_head = _element; // #atmf#
+		}
 	}
 }
 

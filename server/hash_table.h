@@ -46,13 +46,15 @@ typedef struct {
 } p_data;
 
 
-h_table* create_table(const char* _name, cmp_f* _cmp, hash_f* _hash, mem_f* _mem, get_f* _get);
+h_table* create_h_table(const char* _name, cmp_f* _cmp, hash_f* _hash, mem_f* _mem, get_f* _get, mem_init_f* _init);
+void delete_h_table(h_table* _table);
 
 static ht_element* create_element(h_table* _table, const void* _key, const void* value, unsigned long long int _time);
 static void remove_element(ht_element* _element);
 static ht_element* init_element();
 static void deinit_element(ht_element* _element);
 p_data find_element(h_table* _tb, const void* _key);
+static void insert_element(ht_element** _head, ht_element* _element);
 
 /*..................................hash/compare functions......................................*/
 int compare_ss(const void* _str1, const void* _str2);

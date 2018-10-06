@@ -2,7 +2,7 @@
 
 b_tree* create_tree(cmp_bf* _cmp, cmp_be* _cmp_e) {
 	b_tree* new_tree = NULL;
-	if (_cmp != NULL) {
+	if (_cmp != NULL && _cmp_e != NULL) {
 		new_tree = (b_tree*)malloc(sizeof(b_tree));
 		if (new_tree != NULL) {
 			new_tree->compare = _cmp;
@@ -218,7 +218,7 @@ static bt_node* find_node(b_tree* _tree, unsigned long long int _key) {
 	return curr_node;
 }
 
-static bt_data* find_data(b_tree* _tree, ht_element* _element) {
+static bt_data* find_data_by_ptr(b_tree* _tree, ht_element* _element) {
 	bt_node* curr_node = NULL;
 	bt_data* curr_data = NULL;
 	bt_data* data = NULL;
@@ -239,6 +239,22 @@ static bt_data* find_data(b_tree* _tree, ht_element* _element) {
 		}
 	}
 	return data;
+}
+
+static bt_data* find_data_by_node(bt_node* _node, ht_element* _element) {
+	bt_data* curr_data = NULL;
+	bt_data* tmp_data = NULL;
+	if(_node != NULL && _element != NULL) {
+		tmp_data = _node->data;
+		while(tmp_data != NULL) {
+			if(_node->tree->compare_elements(tmp_data->data, _element)) {
+				curr_data = tmp_data;
+				break;
+			}
+			tmp_data = tmp_data->next;
+		}
+	}
+	return curr_data;
 }
 
 /*...........................some static functions....................*/
@@ -326,7 +342,6 @@ cmp_res compare_uu(unsigned long long int _num1, unsigned long long int _num2) {
 }
 
 int compare_elements_hess(const void* _elem1, const void* _elem2) {
-
 	if (_elem1 != NULL && _elem2 != NULL) {
 		return (strcmp(((ht_element*)_elem1)->key, ((ht_element*)_elem2)->key) == 0);
 	}
